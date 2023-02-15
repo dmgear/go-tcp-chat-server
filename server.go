@@ -15,13 +15,19 @@ type Client struct {
 	outgoing chan string
 }
 
+type Room struct {
+	name string
+	Members map[net.Conn]string
+	broadcast chan string
+}
+
 func (c *Client) handleConnection() {
 	defer c.conn.Close()
 	c.username = c.readUsername()
 	fmt.Println("Client", c.username, "connected.")
 
 	for {
-		message, err := bufio.NewReader(c.conn).ReadString('\n')
+		message, err := bufio.NewReader(c.conn).ReadString('\x00')
 		if err != nil {
 			fmt.Println("Client", c.username, "disconnected.")
 			return
@@ -30,13 +36,14 @@ func (c *Client) handleConnection() {
 			continue
 		}
 		message = c.username + ": " + message
+		fmt.Println(message)
 		broadcastMessage(message, c)
 	}
 }
 
 func (c *Client) readUsername() string {
 	c.conn.Write([]byte("enter username: "))
-	username, _ := bufio.NewReader(c.conn).ReadString('\n')
+	username, _ := bufio.NewReader(c.conn).ReadString('\x00')
 	username = strings.TrimSpace(username)
 	if username == "" {
 		username = "anon"
@@ -53,7 +60,13 @@ func broadcastMessage(message string, origin *Client) {
 	}
 }
 
+func createRooms() {
+	//roomList := []string{"General", "Programming", "Gaming", "Music", "Misc", "The Ratway", "File transfer"}
+}
+
 var clients []*Client
+
+var rooms = make(map[string]*Room)
 
 func main() {
 	l, err := net.Listen("tcp", "0.0.0.0:1491")
