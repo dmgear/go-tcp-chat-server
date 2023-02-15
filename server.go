@@ -69,7 +69,7 @@ var clients []*Client
 var rooms = make(map[string]*Room)
 
 func main() {
-	l, err := net.Listen("tcp", "0.0.0.0:1491")
+	l, err := net.Listen("tcp", "0.0.0.0:<port>")
 
 	if err != nil {
 		log.Fatal(err)
