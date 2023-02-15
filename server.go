@@ -78,7 +78,7 @@ func main() {
 
 	defer l.Close()
 
-	fmt.Println("Waiting for Danaerys to finish saying all her titles..")
+	fmt.Println("Waiting for Daenerys to finish saying all her titles..")
 
 	for {
 		conn, err := l.Accept()
