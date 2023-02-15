@@ -21,7 +21,7 @@ func (c *Client) handleConnection() {
 	fmt.Println("Client", c.username, "connected.")
 
 	for {
-		message, err := bufio.NewReader(c.conn).ReadString('\n')
+		message, err := bufio.NewReader(c.conn).ReadString('\x00')
 		if err != nil {
 			fmt.Println("Client", c.username, "disconnected.")
 			return
@@ -36,7 +36,7 @@ func (c *Client) handleConnection() {
 
 func (c *Client) readUsername() string {
 	c.conn.Write([]byte("enter username: "))
-	username, _ := bufio.NewReader(c.conn).ReadString('\n')
+	username, _ := bufio.NewReader(c.conn).ReadString('\x00')
 	username = strings.TrimSpace(username)
 	if username == "" {
 		username = "anon"
