@@ -56,7 +56,7 @@ func broadcastMessage(message string, origin *Client) {
 var clients []*Client
 
 func main() {
-	l, err := net.Listen("tcp", "0.0.0.0:1491")
+	l, err := net.Listen("tcp", "0.0.0.0:,<port>")
 
 	if err != nil {
 		log.Fatal(err)
