@@ -17,7 +17,7 @@ type Client struct {
 
 type Room struct {
 	name string
-	clients []*Client
+	Members map[net.Conn]string
 	broadcast chan string
 }
 
@@ -25,24 +25,6 @@ func (c *Client) handleConnection() {
 	defer c.conn.Close()
 	c.username = c.readUsername()
 	fmt.Println("Client", c.username, "connected.")
-
-	var roomNames []string
-	for roomName := range rooms {
-		roomNames = append(roomNames, roomName)
-	}
-	fmt.Fprintf(c.conn, "Available rooms: %s\n", strings.Join(roomNames, ", "))
-
-	fmt.Fprintf(c.conn, "Enter the name of the room you want to join: ")
-    roomName, _ := bufio.NewReader(c.conn).ReadString('\n')
-    roomName = strings.TrimSpace(roomName)
-    
-    // Join the specified room
-    room, ok := rooms[roomName]
-    if !ok {
-        fmt.Fprintf(c.conn, "Invalid room name. Goodbye!\n")
-        return
-    }
-    room.join(c)
 
 	for {
 		message, err := bufio.NewReader(c.conn).ReadString('\x00')
@@ -70,16 +52,6 @@ func (c *Client) readUsername() string {
 }
 
 func broadcastMessage(message string, origin *Client) {
-	for _, room := range rooms {
-		if containsClient(room.clients, origin.conn) {
-			for _, c := range room.clients {
-				if c.conn != origin.conn {
-					c.conn.Write([]byte(message))
-				}
-			}
-		}
-	}
-
 	for _, client := range clients {
 		if client == origin {
 			continue
@@ -89,39 +61,7 @@ func broadcastMessage(message string, origin *Client) {
 }
 
 func createRooms() {
-	roomList := []string{"General", "Programming", "Gaming", "Chess", "Music", "Misc", "The Ratway", "File transfer"}
-	for _, roomName := range roomList {
-		room := &Room {
-			name: roomName,
-			clients: make([]*Client, 0),
-			broadcast: make(chan string),
-		}
-		rooms[roomName] = room
-	}
-}
-
-func (r *Room) join(c *Client) {
-    r.clients = append(r.clients, c)
-    fmt.Printf("Client %s joined room %s\n", c.username, r.name)
-}
-
-func (r *Room) leave(c *Client) {
-    for i, client := range r.clients {
-        if client == c {
-            r.clients = append(r.clients[:i], r.clients[i+1:]...)
-            fmt.Printf("Client %s left room %s\n", c.username, r.name)
-            break
-        }
-    }
-}
-
-func containsClient(clients []*Client, conn net.Conn ) bool {
-	for _, client := range clients {
-		if client.conn == conn {
-			return true
-		}
-	}
-	return false
+	//roomList := []string{"General", "Programming", "Gaming", "Music", "Misc", "The Ratway", "File transfer"}
 }
 
 var clients []*Client
@@ -129,9 +69,7 @@ var clients []*Client
 var rooms = make(map[string]*Room)
 
 func main() {
-	createRooms()
-
-	l, err := net.Listen("tcp", "0.0.0.0:1491")
+	l, err := net.Listen("tcp", "0.0.0.0:<port>")
 
 	if err != nil {
 		log.Fatal(err)
