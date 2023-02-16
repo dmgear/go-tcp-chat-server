@@ -22,7 +22,7 @@ type Room struct {
 	broadcast chan string
 }
 
-var static_rooms = []string{"#General", "#Programming", "#Gaming", "#Music", "#Misc", "#The Ratway", "#File transfer"}
+var static_rooms = []string{"#General", "#Programming", "#Gaming", "#Music", "#Misc",  "#File transfer"}
 
 func (c *Client) handleConnection() {
 	defer c.conn.Close()
