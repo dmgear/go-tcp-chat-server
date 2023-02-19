@@ -43,6 +43,7 @@ func (r * Room) broadcastMessage(message string, origin *Client) {
 
 var static_rooms = []string{"#General", "#Programming", "#Gaming", "#Music", "#Misc", "#The Ratway", "#File transfer"}
 
+
 func (c *Client) handleConnection() {
 	defer c.conn.Close()
 	c.username = strings.TrimSpace(c.readUsername())
@@ -76,7 +77,7 @@ func (c *Client) handleConnection() {
 					broadcast: make(chan string),
 				} 
 				rooms[roomName] = room
-			}	
+			}
 			room.Join(c)
 			joinmsg := "%s has joined"
 			room.broadcastMessage(fmt.Sprintf(joinmsg, c.username), c)
@@ -121,6 +122,15 @@ var clients []*Client
 
 var rooms = make(map[string]*Room)
 var clientRooms = make(map[*Client]*Room)
+var clientRoles = make(map[string][]*Client)
+
+func createRolesMap() {
+	var roles = []string{"Programmer", "Gamer", "Rat", "Gopher", "Mod"}
+	for _, role := range roles {
+		clientRoles[role] = []*Client{}
+	}
+}
+
 func main() {
 
 	createRooms()
