@@ -13,6 +13,7 @@ type Client struct {
 	data chan []byte
 	username string
 	outgoing chan string
+	role string
 }
 
 type Room struct {
@@ -41,7 +42,12 @@ func (r * Room) broadcastMessage(message string, origin *Client) {
 	}
 }
 
-func (c * Client) listenForJoinLeave(message string) {
+func (c *Client) giveRole(role string) {
+	c.role = role
+	clientRoles[role] = append(clientRoles[role], *c)
+}
+
+func (c * Client) listenForCommand(message string) {
 	if strings.HasPrefix(message, "/join") {
 			roomName := strings.TrimSpace(strings.TrimPrefix(message[:len(message)-1], "/join"))
 			var room *Room 
@@ -64,7 +70,7 @@ func (c * Client) listenForJoinLeave(message string) {
 				room.broadcastMessage(fmt.Sprintf(ext, c.username), c)
 				c.showRooms()
 			}
-		}
+		} else if strings.
 }
 
 func (c *Client) showRooms() {
@@ -95,7 +101,7 @@ func (c *Client) handleConnection() {
 			continue
 		}
 
-	c.leaveJoinCommand(message)
+	c.listenForCommand(message)
 	if room, ok := clientRooms[c]; ok {
 		message = c.username + ": " + message
 		fmt.Println(message)
