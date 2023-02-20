@@ -13,6 +13,7 @@ type Client struct {
 	data chan []byte
 	username string
 	outgoing chan string
+	role string
 }
 
 type Room struct {
@@ -41,39 +42,54 @@ func (r * Room) broadcastMessage(message string, origin *Client) {
 	}
 }
 
-func (c * Client) leaveJoinCommand(message string) {
-	if strings.HasPrefix(message, "/join") {
-			roomName := strings.TrimSpace(strings.TrimPrefix(message[:len(message)-1], "/join"))
-			var room *Room 
-			var ok bool
-			if room, ok = rooms[roomName]; !ok {
-				room = &Room {
-					name: roomName,
-					Members: make(map[net.Conn]string),
-					broadcast: make(chan string),
-				} 
-				rooms[roomName] = room
+func (c *Client) giveRole(role string, client *Client) {
+	c.role = role
+	clientRoles[role] = append(clientRoles[role], client)
+}
+
+func (c *Client) listenForCommand(message string) {
+	if !strings.HasPrefix(message, "/") {
+		return
+	}
+
+	command := strings.Split(message[1:], " ")
+	switch command[0] {
+	case "join":
+		roomName := strings.TrimSpace(strings.Join(command[1:], " "))
+		room, ok := rooms[roomName]
+		if !ok {
+			room = &Room{
+				name:      roomName,
+				Members:   make(map[net.Conn]string),
+				broadcast: make(chan string),
 			}
-			room.Join(c)
-			joinmsg := "%s has joined"
-			room.broadcastMessage(fmt.Sprintf(joinmsg, c.username), c)
-		} else if strings.HasPrefix(message, "/leave") {
-			if room, ok := clientRooms[c]; ok {
-				room.Leave(c)
-				ext := "%s has left"
-				room.broadcastMessage(fmt.Sprintf(ext, c.username), c)
-			}
-		} else {
-			if room, ok := clientRooms[c]; ok {
-				message = c.username + ": " + message
-				fmt.Println(message)
-				room.broadcastMessage(message, c)
-			}
+			rooms[roomName] = room
 		}
+		room.Join(c)
+		joinmsg := "%s has joined"
+		room.broadcastMessage(fmt.Sprintf(joinmsg, c.username), c)
+	case "leave":
+		if room, ok := clientRooms[c]; ok {
+			room.Leave(c)
+			ext := "%s has left"
+			room.broadcastMessage(fmt.Sprintf(ext, c.username), c)
+			c.showRooms()
+		}
+	default:
+		// When the command doesn't exist
+		fmt.Println("Unknown command:", command[0])
+	}
+}
+
+func (c *Client) showRooms() {
+	c.conn.Write([]byte("Available rooms:\n"))
+
+	for _, name := range static_rooms { 
+		c.conn.Write([]byte("-" + fmt.Sprint(name) + "\n"))
+	}
 }
 
 var static_rooms = []string{"#General", "#Programming", "#Gaming", "#Music", "#Misc", "#The Ratway", "#File transfer"}
-
 
 func (c *Client) handleConnection() {
 	defer c.conn.Close()
@@ -81,11 +97,7 @@ func (c *Client) handleConnection() {
 	c.username = c.username[:len(c.username)-1]
 	fmt.Println("Client", c.username, "connected.")
 
-	c.conn.Write([]byte("Available rooms:\n"))
-
-	for _, name := range static_rooms { 
-		c.conn.Write([]byte("-" + fmt.Sprint(name) + "\n"))
-	}
+	c.showRooms()
 
 	for {
 		message, err := bufio.NewReader(c.conn).ReadString('\x00')
@@ -97,7 +109,12 @@ func (c *Client) handleConnection() {
 			continue
 		}
 
-		c.leaveJoinCommand(message)
+	c.listenForCommand(message)
+	if room, ok := clientRooms[c]; ok {
+		message = c.username + ": " + message
+		fmt.Println(message)
+		room.broadcastMessage(message, c)
+	}
 	}
 }
 
