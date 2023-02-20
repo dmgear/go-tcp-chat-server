@@ -41,32 +41,8 @@ func (r * Room) broadcastMessage(message string, origin *Client) {
 	}
 }
 
-var static_rooms = []string{"#General", "#Programming", "#Gaming", "#Music", "#Misc", "#The Ratway", "#File transfer"}
-
-
-func (c *Client) handleConnection() {
-	defer c.conn.Close()
-	c.username = strings.TrimSpace(c.readUsername())
-	c.username = c.username[:len(c.username)-1]
-	fmt.Println("Client", c.username, "connected.")
-
-	c.conn.Write([]byte("Available rooms:\n"))
-
-	for _, name := range static_rooms { 
-		c.conn.Write([]byte("-" + fmt.Sprint(name) + "\n"))
-	}
-
-	for {
-		message, err := bufio.NewReader(c.conn).ReadString('\x00')
-		if err != nil {
-			fmt.Println("Client", c.username, "disconnected.")
-			return
-		}
-		if message == "" {
-			continue
-		}
-
-		if strings.HasPrefix(message, "/join") {
+func (c * Client) leaveJoinCommand(message string) {
+	if strings.HasPrefix(message, "/join") {
 			roomName := strings.TrimSpace(strings.TrimPrefix(message[:len(message)-1], "/join"))
 			var room *Room 
 			var ok bool
@@ -94,6 +70,34 @@ func (c *Client) handleConnection() {
 				room.broadcastMessage(message, c)
 			}
 		}
+}
+
+var static_rooms = []string{"#General", "#Programming", "#Gaming", "#Music", "#Misc", "#The Ratway", "#File transfer"}
+
+
+func (c *Client) handleConnection() {
+	defer c.conn.Close()
+	c.username = strings.TrimSpace(c.readUsername())
+	c.username = c.username[:len(c.username)-1]
+	fmt.Println("Client", c.username, "connected.")
+
+	c.conn.Write([]byte("Available rooms:\n"))
+
+	for _, name := range static_rooms { 
+		c.conn.Write([]byte("-" + fmt.Sprint(name) + "\n"))
+	}
+
+	for {
+		message, err := bufio.NewReader(c.conn).ReadString('\x00')
+		if err != nil {
+			fmt.Println("Client", c.username, "disconnected.")
+			return
+		}
+		if message == "" {
+			continue
+		}
+
+		c.leaveJoinCommand(message)
 	}
 }
 
