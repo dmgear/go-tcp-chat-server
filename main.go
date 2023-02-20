@@ -41,7 +41,39 @@ func (r * Room) broadcastMessage(message string, origin *Client) {
 	}
 }
 
+func (c * Client) leaveJoinCommand(message string) {
+	if strings.HasPrefix(message, "/join") {
+			roomName := strings.TrimSpace(strings.TrimPrefix(message[:len(message)-1], "/join"))
+			var room *Room 
+			var ok bool
+			if room, ok = rooms[roomName]; !ok {
+				room = &Room {
+					name: roomName,
+					Members: make(map[net.Conn]string),
+					broadcast: make(chan string),
+				} 
+				rooms[roomName] = room
+			}
+			room.Join(c)
+			joinmsg := "%s has joined"
+			room.broadcastMessage(fmt.Sprintf(joinmsg, c.username), c)
+		} else if strings.HasPrefix(message, "/leave") {
+			if room, ok := clientRooms[c]; ok {
+				room.Leave(c)
+				ext := "%s has left"
+				room.broadcastMessage(fmt.Sprintf(ext, c.username), c)
+			}
+		} else {
+			if room, ok := clientRooms[c]; ok {
+				message = c.username + ": " + message
+				fmt.Println(message)
+				room.broadcastMessage(message, c)
+			}
+		}
+}
+
 var static_rooms = []string{"#General", "#Programming", "#Gaming", "#Music", "#Misc", "#The Ratway", "#File transfer"}
+
 
 func (c *Client) handleConnection() {
 	defer c.conn.Close()
@@ -65,34 +97,7 @@ func (c *Client) handleConnection() {
 			continue
 		}
 
-		if strings.HasPrefix(message, "/join") {
-			roomName := strings.TrimSpace(strings.TrimPrefix(message[:len(message)-1], "/join"))
-			var room *Room 
-			var ok bool
-			if room, ok = rooms[roomName]; !ok {
-				room = &Room {
-					name: roomName,
-					Members: make(map[net.Conn]string),
-					broadcast: make(chan string),
-				} 
-				rooms[roomName] = room
-			}	
-			room.Join(c)
-			joinmsg := "%s has joined"
-			room.broadcastMessage(fmt.Sprintf(joinmsg, c.username), c)
-		} else if strings.HasPrefix(message, "/leave") {
-			if room, ok := clientRooms[c]; ok {
-				room.Leave(c)
-				ext := "%s has left"
-				room.broadcastMessage(fmt.Sprintf(ext, c.username), c)
-			}
-		} else {
-			if room, ok := clientRooms[c]; ok {
-				message = c.username + ": " + message
-				fmt.Println(message)
-				room.broadcastMessage(message, c)
-			}
-		}
+		c.leaveJoinCommand(message)
 	}
 }
 
@@ -121,6 +126,15 @@ var clients []*Client
 
 var rooms = make(map[string]*Room)
 var clientRooms = make(map[*Client]*Room)
+var clientRoles = make(map[string][]*Client)
+
+func createRolesMap() {
+	var roles = []string{"Programmer", "Gamer", "Rat", "Gopher", "Mod"}
+	for _, role := range roles {
+		clientRoles[role] = []*Client{}
+	}
+}
+
 func main() {
 
 	createRooms()
