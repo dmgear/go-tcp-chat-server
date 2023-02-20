@@ -8,7 +8,7 @@
             "type": "go",
             "request": "launch",
             "name": "debug",
-            "program": "${workspaceFolder}/main.go",
+            "program": "${workspaceFolder}",
             "args": [],
             "cwd": "${workspaceFolder}",
             "mode": "debug"
