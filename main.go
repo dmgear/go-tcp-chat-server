@@ -41,7 +41,7 @@ func (r * Room) broadcastMessage(message string, origin *Client) {
 	}
 }
 
-func (c * Client) leaveJoinCommand(message string) {
+func (c * Client) listenForJoinLeave(message string) {
 	if strings.HasPrefix(message, "/join") {
 			roomName := strings.TrimSpace(strings.TrimPrefix(message[:len(message)-1], "/join"))
 			var room *Room 
@@ -62,18 +62,20 @@ func (c * Client) leaveJoinCommand(message string) {
 				room.Leave(c)
 				ext := "%s has left"
 				room.broadcastMessage(fmt.Sprintf(ext, c.username), c)
-			}
-		} else {
-			if room, ok := clientRooms[c]; ok {
-				message = c.username + ": " + message
-				fmt.Println(message)
-				room.broadcastMessage(message, c)
+				c.showRooms()
 			}
 		}
 }
 
-var static_rooms = []string{"#General", "#Programming", "#Gaming", "#Music", "#Misc", "#The Ratway", "#File transfer"}
+func (c *Client) showRooms() {
+	c.conn.Write([]byte("Available rooms:\n"))
 
+	for _, name := range static_rooms { 
+		c.conn.Write([]byte("-" + fmt.Sprint(name) + "\n"))
+	}
+}
+
+var static_rooms = []string{"#General", "#Programming", "#Gaming", "#Music", "#Misc", "#The Ratway", "#File transfer"}
 
 func (c *Client) handleConnection() {
 	defer c.conn.Close()
@@ -81,11 +83,7 @@ func (c *Client) handleConnection() {
 	c.username = c.username[:len(c.username)-1]
 	fmt.Println("Client", c.username, "connected.")
 
-	c.conn.Write([]byte("Available rooms:\n"))
-
-	for _, name := range static_rooms { 
-		c.conn.Write([]byte("-" + fmt.Sprint(name) + "\n"))
-	}
+	c.showRooms()
 
 	for {
 		message, err := bufio.NewReader(c.conn).ReadString('\x00')
@@ -97,7 +95,12 @@ func (c *Client) handleConnection() {
 			continue
 		}
 
-		c.leaveJoinCommand(message)
+	c.leaveJoinCommand(message)
+	if room, ok := clientRooms[c]; ok {
+		message = c.username + ": " + message
+		fmt.Println(message)
+		room.broadcastMessage(message, c)
+	}
 	}
 }
 
