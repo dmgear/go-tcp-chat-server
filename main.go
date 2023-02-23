@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func isValidRole(role string, roles []string) bool {
@@ -38,7 +40,13 @@ func createRolesMap() {
 	}
 }
 
-func main() {
+func main() {	
+	db, err := InitDB("mydatabase.db")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+	
 	createRooms()
 
 	l, err := net.Listen("tcp", "0.0.0.0:1491")
