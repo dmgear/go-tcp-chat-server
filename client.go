@@ -9,15 +9,7 @@ import (
 
 type Client struct {
 	conn     net.Conn
-	data     chan []byte
 	username string
-	outgoing chan string
-	role     string
-}
-
-func (c *Client) giveRole(role string, client *Client) {
-	c.role = role
-	clientRoles[role] = append(clientRoles[role], client)
 }
 
 func (c *Client) listenForCommand(message string) bool {
@@ -37,6 +29,7 @@ func (c *Client) listenForCommand(message string) bool {
 				Members:   make(map[net.Conn]string),
 				broadcast: make(chan string),
 			}
+			
 			rooms[roomName] = room
 		}
 		room.Join(c)
@@ -96,9 +89,7 @@ func (c *Client) handleConnection() {
 		if room, ok := clientRooms[c]; ok {
 			message = c.username + ": " + message
 			fmt.Println(message)
-			if listenFor {
-				room.broadcastMessage(message, c)
-			}
+			room.broadcastMessage(message, c)
 		}
 	}
 }

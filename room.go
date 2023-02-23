@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net"
 )
 
@@ -27,7 +26,7 @@ func (r * Room) broadcastMessage(message string, origin *Client) {
 		if conn == origin.conn {
 			continue
 		}
-		conn.Write([]byte(fmt.Sprintf("%s", message)))
+		conn.Write([]byte(message))
 	}
 }
 

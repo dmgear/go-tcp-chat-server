@@ -34,12 +34,6 @@ var clientRoles = make(map[string][]*Client)
 
 var rolesList = []string{"Programmer", "Gamer", "Rat", "Gopher", "Mod"}
 
-func createRolesMap() {
-	for _, role := range rolesList {
-		clientRoles[role] = []*Client{}
-	}
-}
-
 func main() {	
 	db, err := InitDB("mydatabase.db")
 	if err != nil {
