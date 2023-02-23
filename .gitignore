@@ -1,3 +1,5 @@
 .vscode
 main.exe
 .dist
+chat.db
+mydatabase.db
