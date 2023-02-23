@@ -10,6 +10,7 @@ import (
 type Client struct {
 	conn     net.Conn
 	username string
+	password string
 }
 
 func (c *Client) listenForCommand(message string) bool {
@@ -68,11 +69,15 @@ func (c *Client) listenForCommand(message string) bool {
 
 func (c *Client) handleConnection() {
 	defer c.conn.Close()
+
+	// get username and password from client
 	c.username = strings.TrimSpace(c.readUsername())
 	c.username = filterString(c.username)
+	c.password = strings.TrimSpace(c.readPassword())
+	c.password = filterString(c.password)
 	fmt.Println("Client", c.username, "connected.")
 
-	c.showRooms()
+	c.showRooms() // display list of rooms to user
 
 	for {
 		message, err := bufio.NewReader(c.conn).ReadString('\x00')
@@ -110,4 +115,18 @@ func (c *Client) readUsername() string {
         username = "anon"
     }
     return username
+}
+
+func (c *Client) readPassword() string {
+    c.conn.Write([]byte("Enter password: "))
+    password, _ := bufio.NewReader(c.conn).ReadString('\x00')
+    password = strings.TrimSpace(password)
+    return password
+}
+
+func (c *Client) readEmail() string {
+    c.conn.Write([]byte("Enter email: "))
+    email, _ := bufio.NewReader(c.conn).ReadString('\x00')
+    email = strings.TrimSpace(email)
+    return email
 }
