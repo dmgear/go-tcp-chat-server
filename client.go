@@ -2,7 +2,9 @@ package main
 
 import (
 	"bufio"
+	"database/sql"
 	"fmt"
+	"log"
 	"net"
 	"strings"
 )
@@ -11,6 +13,10 @@ type Client struct {
 	conn     net.Conn
 	username string
 	password string
+}
+
+func NewClient(conn net.Conn) *Client {
+	return &Client{conn: conn}
 }
 
 func (c *Client) listenForCommand(message string) bool {
@@ -67,10 +73,26 @@ func (c *Client) listenForCommand(message string) bool {
 	}
 }
 
-func (c *Client) handleConnection() {
+func (c *Client) handleConnection(db *sql.DB) {
 	defer c.conn.Close()
 
 	// get username and password from client
+	c.username = strings.TrimSpace(c.readUsername())
+	c.username = filterString(c.username)
+	
+	// check if user already exists in the database
+    userExists, err := checkUserExists(db, c.username)
+    if err != nil {
+        log.Fatal(err)
+        return
+    }
+    if userExists {
+        fmt.Println("User", c.username, "already exists.")
+        return
+    } 
+	if !userExists {
+	// prompt user to create new account with email
+	c.conn.Write([]byte("No existing account with that username, please sign up "))
 	c.username = strings.TrimSpace(c.readUsername())
 	c.username = filterString(c.username)
 	c.password = strings.TrimSpace(c.readPassword())
@@ -78,6 +100,13 @@ func (c *Client) handleConnection() {
 	fmt.Println("Client", c.username, "connected.")
 
 	c.showRooms() // display list of rooms to user
+	}
+    // add new user to the database
+    err = addUser(db, c.username, c.password)
+    if err != nil {
+        log.Fatal(err)
+        return
+    }
 
 	for {
 		message, err := bufio.NewReader(c.conn).ReadString('\x00')
@@ -122,11 +151,4 @@ func (c *Client) readPassword() string {
     password, _ := bufio.NewReader(c.conn).ReadString('\x00')
     password = strings.TrimSpace(password)
     return password
-}
-
-func (c *Client) readEmail() string {
-    c.conn.Write([]byte("Enter email: "))
-    email, _ := bufio.NewReader(c.conn).ReadString('\x00')
-    email = strings.TrimSpace(email)
-    return email
 }
