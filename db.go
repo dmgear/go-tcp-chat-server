@@ -4,8 +4,6 @@ import (
 	"database/sql"
 )
 
-
-
 func InitDB(dbPath string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite3", "./mydatabase.db")
 	if err != nil {
@@ -13,10 +11,9 @@ func InitDB(dbPath string) (*sql.DB, error) {
 	}
 
 	createTableSQL := `CREATE TABLE IF NOT EXISTS USERS (
-		ID INTEGER PRIMARY KEY,
 		USERNAME TEXT,
 		PASSWORD TEXT,
-		EMAIL TEXT
+		ROLE TEXT
 	);`
 	_, err = db.Exec(createTableSQL)
 	if err != nil {

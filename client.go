@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"database/sql"
 	"fmt"
-	"log"
 	"net"
 	"strings"
 )
@@ -49,7 +48,10 @@ func (c *Client) listenForCommand(message string) bool {
 				room.Leave(c)
 				ext := "%s has left"
 				room.broadcastMessage(fmt.Sprintf(ext, c.username), c)
+				
 				c.showRooms()
+				c.conn.Write([]byte("\nWelcome to the lobby.\n"))
+				
 			}
 			return false
 		}
@@ -66,47 +68,26 @@ func (c *Client) listenForCommand(message string) bool {
 		clientRoles[role] = append(clientRoles[role], c)
 		c.conn.Write([]byte(fmt.Sprintf("You have been assigned the role of %s.\n", role)))
 		return false
+	case "help":
+		c.conn.Write([]byte("List of commands:\n/help for list of commands\n/join <room name> to join a room.\n/leave to leave a room.\n/list to list all users in a room\n/role <role> to assign yourself a role.\n"))
+		return false
+	case "list":
+		roomName := clientRooms[c].name
+		room := getRoom(roomName)
+		listUsers(c, room)
 	default:
 		// When the command doesn't exist
 		fmt.Println("Unknown command:", command[0])
 		return true
 	}
+	return true 
 }
 
 func (c *Client) handleConnection(db *sql.DB) {
 	defer c.conn.Close()
 
-	// get username and password from client
-	c.username = strings.TrimSpace(c.readUsername())
-	c.username = filterString(c.username)
-	
-	// check if user already exists in the database
-    userExists, err := checkUserExists(db, c.username)
-    if err != nil {
-        log.Fatal(err)
-        return
-    }
-    if userExists {
-        fmt.Println("User", c.username, "already exists.")
-        return
-    } 
-	if !userExists {
-	// prompt user to create new account with email
-	c.conn.Write([]byte("No existing account with that username, please sign up "))
-	c.username = strings.TrimSpace(c.readUsername())
-	c.username = filterString(c.username)
-	c.password = strings.TrimSpace(c.readPassword())
-	c.password = filterString(c.password)
-	fmt.Println("Client", c.username, "connected.")
-
-	c.showRooms() // display list of rooms to user
-	}
-    // add new user to the database
-    err = addUser(db, c.username, c.password)
-    if err != nil {
-        log.Fatal(err)
-        return
-    }
+	login(db, c)
+    
 
 	for {
 		message, err := bufio.NewReader(c.conn).ReadString('\x00')
@@ -120,6 +101,11 @@ func (c *Client) handleConnection(db *sql.DB) {
 
 		listenFor := c.listenForCommand(filterString(message))
 		_ = listenFor
+
+		if strings.HasPrefix(message, "/") {
+			continue
+		}
+
 		if room, ok := clientRooms[c]; ok {
 			message = c.username + ": " + message
 			fmt.Println(message)
@@ -151,4 +137,21 @@ func (c *Client) readPassword() string {
     password, _ := bufio.NewReader(c.conn).ReadString('\x00')
     password = strings.TrimSpace(password)
     return password
+}
+
+func listUsers(c *Client, r *Room) {
+	userList := ""
+	for _, user := range r.Members {
+		userList += user + "\n"
+	}
+	c.conn.Write([]byte(userList))
+}
+
+func getRoom(name string) *Room {
+	for _, room := range rooms {
+		if room.name == name {
+			return room
+		}
+	}
+	return nil
 }
