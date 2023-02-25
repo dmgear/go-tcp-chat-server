@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"database/sql"
 	"fmt"
+	"log"
 	"net"
 	"strings"
 )
@@ -12,13 +13,14 @@ type Client struct {
 	conn     net.Conn
 	username string
 	password string
+	role string
 }
 
 func NewClient(conn net.Conn) *Client {
 	return &Client{conn: conn}
 }
 
-func (c *Client) listenForCommand(message string) bool {
+func (c *Client) listenForCommand(message string, db *sql.DB) bool {
 	if !strings.HasPrefix(message, "/") {
 		return false
 	}
@@ -67,6 +69,11 @@ func (c *Client) listenForCommand(message string) bool {
 		}
 		clientRoles[role] = append(clientRoles[role], c)
 		c.conn.Write([]byte(fmt.Sprintf("You have been assigned the role of %s.\n", role)))
+		// add user's role to database
+		err := c.updateRole(db, role, c.username) 
+		if err != nil { 
+			log.Fatal(err)
+		}
 		return false
 	case "help":
 		c.conn.Write([]byte("List of commands:\n/help for list of commands\n/join <room name> to join a room.\n/leave to leave a room.\n/list to list all users in a room\n/role <role> to assign yourself a role.\n"))
@@ -99,7 +106,7 @@ func (c *Client) handleConnection(db *sql.DB) {
 			continue
 		}
 
-		listenFor := c.listenForCommand(filterString(message))
+		listenFor := c.listenForCommand(filterString(message), db)
 		_ = listenFor
 
 		if strings.HasPrefix(message, "/") {

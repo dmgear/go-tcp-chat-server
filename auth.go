@@ -36,7 +36,7 @@ func addUser(db *sql.DB, username string, password string) error {
 
 func checkPassword(db *sql.DB, username string, password string) (bool, error) {
     var dbPassword string
-    err := db.QueryRow("SELECT password FROM users WHERE username = ?", username).Scan(&dbPassword)
+    err := db.QueryRow("SELECT PASSWORD FROM USERS WHERE USERNAME = ?", username).Scan(&dbPassword)
     if err != nil {
         if err == sql.ErrNoRows {
             return false, nil
