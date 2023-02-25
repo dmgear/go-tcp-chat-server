@@ -60,8 +60,8 @@ func main() {
 			log.Fatal(err)
 			continue
 		}
-		client := &Client{conn: conn}
+		client := NewClient(conn)
 		clients = append(clients, client)
-		go client.handleConnection()
+		go client.handleConnection(db)
 	}
 }
