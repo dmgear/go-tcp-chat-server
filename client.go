@@ -94,7 +94,6 @@ func (c *Client) handleConnection(db *sql.DB) {
 	defer c.conn.Close()
 
 	login(db, c)
-    
 
 	for {
 		message, err := bufio.NewReader(c.conn).ReadString('\x00')
