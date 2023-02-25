@@ -2,25 +2,25 @@ package main
 
 import (
 	"bufio"
+	"database/sql"
 	"fmt"
+	"log"
 	"net"
 	"strings"
 )
 
 type Client struct {
 	conn     net.Conn
-	data     chan []byte
 	username string
-	outgoing chan string
-	role     string
+	password string
+	role string
 }
 
-func (c *Client) giveRole(role string, client *Client) {
-	c.role = role
-	clientRoles[role] = append(clientRoles[role], client)
+func NewClient(conn net.Conn) *Client {
+	return &Client{conn: conn}
 }
 
-func (c *Client) listenForCommand(message string) bool {
+func (c *Client) listenForCommand(message string, db *sql.DB) bool {
 	if !strings.HasPrefix(message, "/") {
 		return false
 	}
@@ -37,6 +37,7 @@ func (c *Client) listenForCommand(message string) bool {
 				Members:   make(map[net.Conn]string),
 				broadcast: make(chan string),
 			}
+			
 			rooms[roomName] = room
 		}
 		room.Join(c)
@@ -49,7 +50,10 @@ func (c *Client) listenForCommand(message string) bool {
 				room.Leave(c)
 				ext := "%s has left"
 				room.broadcastMessage(fmt.Sprintf(ext, c.username), c)
+				
 				c.showRooms()
+				c.conn.Write([]byte("\nWelcome to the lobby.\n"))
+				
 			}
 			return false
 		}
@@ -65,21 +69,31 @@ func (c *Client) listenForCommand(message string) bool {
 		}
 		clientRoles[role] = append(clientRoles[role], c)
 		c.conn.Write([]byte(fmt.Sprintf("You have been assigned the role of %s.\n", role)))
+		// add user's role to database
+		err := c.updateRole(db, role, c.username) 
+		if err != nil { 
+			log.Fatal(err)
+		}
 		return false
+	case "help":
+		c.conn.Write([]byte("List of commands:\n/help for list of commands\n/join <room name> to join a room.\n/leave to leave a room.\n/list to list all users in a room\n/role <role> to assign yourself a role.\n"))
+		return false
+	case "list":
+		roomName := clientRooms[c].name
+		room := getRoom(roomName)
+		listUsers(c, room)
 	default:
 		// When the command doesn't exist
 		fmt.Println("Unknown command:", command[0])
 		return true
 	}
+	return true 
 }
 
-func (c *Client) handleConnection() {
+func (c *Client) handleConnection(db *sql.DB) {
 	defer c.conn.Close()
-	c.username = strings.TrimSpace(c.readUsername())
-	c.username = filterString(c.username)
-	fmt.Println("Client", c.username, "connected.")
 
-	c.showRooms()
+	login(db, c)
 
 	for {
 		message, err := bufio.NewReader(c.conn).ReadString('\x00')
@@ -91,14 +105,17 @@ func (c *Client) handleConnection() {
 			continue
 		}
 
-		listenFor := c.listenForCommand(filterString(message))
+		listenFor := c.listenForCommand(filterString(message), db)
 		_ = listenFor
+
+		if strings.HasPrefix(message, "/") {
+			continue
+		}
+
 		if room, ok := clientRooms[c]; ok {
 			message = c.username + ": " + message
 			fmt.Println(message)
-			if listenFor {
-				room.broadcastMessage(message, c)
-			}
+			room.broadcastMessage(message, c)
 		}
 	}
 }
@@ -119,4 +136,28 @@ func (c *Client) readUsername() string {
         username = "anon"
     }
     return username
+}
+
+func (c *Client) readPassword() string {
+    c.conn.Write([]byte("Enter password: "))
+    password, _ := bufio.NewReader(c.conn).ReadString('\x00')
+    password = strings.TrimSpace(password)
+    return password
+}
+
+func listUsers(c *Client, r *Room) {
+	userList := ""
+	for _, user := range r.Members {
+		userList += user + "\n"
+	}
+	c.conn.Write([]byte(userList))
+}
+
+func getRoom(name string) *Room {
+	for _, room := range rooms {
+		if room.name == name {
+			return room
+		}
+	}
+	return nil
 }

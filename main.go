@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func isValidRole(role string, roles []string) bool {
@@ -32,13 +34,13 @@ var clientRoles = make(map[string][]*Client)
 
 var rolesList = []string{"Programmer", "Gamer", "Rat", "Gopher", "Mod"}
 
-func createRolesMap() {
-	for _, role := range rolesList {
-		clientRoles[role] = []*Client{}
+func main() {	
+	db, err := InitDB("mydatabase.db")
+	if err != nil {
+		log.Fatal(err)
 	}
-}
-
-func main() {
+	defer db.Close()
+	
 	createRooms()
 
 	l, err := net.Listen("tcp", "0.0.0.0:1491")
@@ -58,8 +60,8 @@ func main() {
 			log.Fatal(err)
 			continue
 		}
-		client := &Client{conn: conn}
+		client := NewClient(conn)
 		clients = append(clients, client)
-		go client.handleConnection()
+		go client.handleConnection(db)
 	}
 }
