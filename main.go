@@ -22,7 +22,7 @@ func filterString(message string) string {
 	return message
 }
 
-var static_rooms = []string{"#General", "#Programming", "#Gaming", "#Music", "#Misc", "#The Ratway", "#File transfer"}
+var static_rooms = []string{"#General", "#Programming", "#Gaming", "#Music", "#Paranormal", "#Misc", "#The Ratway", "#File transfer"}
 
 var clients []*Client
 
@@ -32,7 +32,7 @@ var clientRooms = make(map[*Client]*Room)
 
 var clientRoles = make(map[string][]*Client)
 
-var rolesList = []string{"Programmer", "Gamer", "Rat", "Gopher", "Mod"}
+var rolesList = []string{"Programmer", "Gamer", "Rat", "Gopher", "Paranormal Investigator","Mod"}
 
 func main() {	
 	db, err := InitDB("mydatabase.db")

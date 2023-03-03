@@ -53,7 +53,7 @@ func (c *Client) listenForCommand(message string, db *sql.DB) bool {
 				
 				c.showRooms()
 				c.conn.Write([]byte("\nWelcome to the lobby.\n"))
-				
+
 			}
 			return false
 		}

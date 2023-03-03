@@ -11,12 +11,24 @@ func InitDB(dbPath string) (*sql.DB, error) {
 		return nil, err
 	}
 
-	createTableSQL := `CREATE TABLE IF NOT EXISTS USERS (
+	createUserTable := `CREATE TABLE IF NOT EXISTS USERS (
+		USERID INTEGER PRIMARY KEY,
 		USERNAME TEXT,
-		PASSWORD TEXT,
-		ROLE TEXT
+		PASSWORD TEXT
 	);`
-	_, err = db.Exec(createTableSQL)
+	_, err = db.Exec(createUserTable)
+	if err != nil {
+		panic(err)
+	}
+
+	createRolesTable := `CREATE TABLE IF NOT EXISTS ROLES (
+		ROLEID INTEGER PRIMARY KEY,
+		ROLENAME TEXT,
+		USERID INTEGER,
+		FOREIGN KEY (USERID) REFERENCES USERS(USERID)
+	);`
+
+	_, err = db.Exec(createRolesTable)
 	if err != nil {
 		panic(err)
 	}
@@ -26,7 +38,7 @@ func InitDB(dbPath string) (*sql.DB, error) {
 func (c *Client) updateRole(db *sql.DB, role string, username string) error {
 	c.role = role
 	c.username = username
-	query := "UPDATE USERS SET ROLE=? WHERE USERNAME=?"
+	query := "INSERT INTO ROLES (ROLENAME, USERID) VALUES (?, (SELECT USERID FROM USERS WHERE USERNAME=?))"
 	
 	_, err := db.Exec(query, role, username)
 	if err != nil {
