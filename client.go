@@ -25,6 +25,7 @@ func (c *Client) listenForCommand(message string, db *sql.DB) bool {
 		return false
 	}
 
+	// remove first character "/", from message to parse command keyword for processing
 	command := strings.Split(message[1:], " ")
 	switch command[0] {
 	case "join":
