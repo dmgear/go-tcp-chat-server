@@ -32,7 +32,7 @@ var clientRooms = make(map[*Client]*Room)
 
 var clientRoles = make(map[string][]*Client)
 
-var rolesList = []string{"Programmer", "Gamer", "Rat", "Gopher", "Paranormal Investigator","Mod"}
+var rolesList = []string{"Programmer", "Rat", "Gopher", "Gamer", "Paranormal Investigator", "Mod"}
 
 func main() {	
 	db, err := InitDB("mydatabase.db")
