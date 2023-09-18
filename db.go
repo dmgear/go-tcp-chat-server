@@ -23,31 +23,12 @@ func InitDB(dbPath string) (*sql.DB, error) {
 
 	createRolesTable := `CREATE TABLE IF NOT EXISTS ROLES (
 		ROLEID INTEGER PRIMARY KEY,
-		USERID TEXT,
-		ROLENAME TEXT
+		ROLENAME TEXT,
+		USERID INTEGER,
+		FOREIGN KEY (USERID) REFERENCES USERS(USERID)
 	);`
 
 	_, err = db.Exec(createRolesTable)
-	if err != nil {
-		panic(err)
-	}
-
-	createUserRoleTable := `CREATE TABLE IF NOT EXISTS USERROLE (
-		ID INTEGER PRIMARY KEY,
-		USERID INTEGER,
-		ROLEID INTEGER,
-		FOREIGN KEY (USERID) REFERENCES USERS(USERID),
-		FOREIGN KEY (ROLEID) REFERENCES ROLES(ROLEID)
-	);`
-	_, err = db.Exec(createUserRoleTable)
-	if err != nil {
-		panic(err)
-	}
-
-	joinQuery := `SELECT USERS.USERNAME, ROLES.ROLENAME 
-	FROM USERS JOIN USERROLE ON USERS.USERID = USERROLE.USERID 
-	JOIN ROLES ON USERROLE.ROLEID = ROLES.ROLEID;`
-	_, err = db.Exec(joinQuery)
 	if err != nil {
 		panic(err)
 	}
@@ -57,7 +38,7 @@ func InitDB(dbPath string) (*sql.DB, error) {
 func (c *Client) updateRole(db *sql.DB, role string, username string) error {
 	c.role = role
 	c.username = username
-	query := "INSERT INTO USERROLE (ROLEID, USERID) VALUES (?, (SELECT USERID FROM USERS WHERE USERNAME=?))"
+	query := "INSERT INTO ROLES (ROLENAME, USERID) VALUES (?, (SELECT USERID FROM USERS WHERE USERNAME=?))"
 	
 	_, err := db.Exec(query, role, username)
 	if err != nil {
