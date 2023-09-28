@@ -13,7 +13,10 @@ type Client struct {
 	conn     net.Conn
 	username string
 	password string
-	role string
+	role     string
+	hand     []Card
+	pile     []Card
+	points   int
 }
 
 func NewClient(conn net.Conn) *Client {
@@ -37,7 +40,7 @@ func (c *Client) listenForCommand(message string, db *sql.DB) bool {
 				Members:   make(map[net.Conn]string),
 				broadcast: make(chan string),
 			}
-			
+
 			rooms[roomName] = room
 		}
 		room.Join(c)
@@ -50,7 +53,7 @@ func (c *Client) listenForCommand(message string, db *sql.DB) bool {
 				room.Leave(c)
 				ext := "%s has left"
 				room.broadcastMessage(fmt.Sprintf(ext, c.username), c)
-				
+
 				c.showRooms()
 				c.conn.Write([]byte("\nWelcome to the lobby.\n"))
 
@@ -70,8 +73,8 @@ func (c *Client) listenForCommand(message string, db *sql.DB) bool {
 		clientRoles[role] = append(clientRoles[role], c)
 		c.conn.Write([]byte(fmt.Sprintf("You have been assigned the role of %s.\n", role)))
 		// add user's role to database
-		err := c.updateRole(db, role, c.username) 
-		if err != nil { 
+		err := c.updateRole(db, role, c.username)
+		if err != nil {
 			log.Fatal(err)
 		}
 		return false
@@ -87,7 +90,7 @@ func (c *Client) listenForCommand(message string, db *sql.DB) bool {
 		fmt.Println("Unknown command:", command[0])
 		return true
 	}
-	return true 
+	return true
 }
 
 func (c *Client) handleConnection(db *sql.DB) {
@@ -123,26 +126,26 @@ func (c *Client) handleConnection(db *sql.DB) {
 func (c *Client) showRooms() {
 	c.conn.Write([]byte("Available rooms:\n"))
 
-	for _, name := range static_rooms { 
+	for _, name := range static_rooms {
 		c.conn.Write([]byte("-" + fmt.Sprint(name) + "\n"))
 	}
 }
 
 func (c *Client) readUsername() string {
-    c.conn.Write([]byte("Enter username: "))
-    username, _ := bufio.NewReader(c.conn).ReadString('\x00')
-    username = strings.TrimSpace(username)
-    if username == "" {
-        username = "anon"
-    }
-    return username
+	c.conn.Write([]byte("Enter username: "))
+	username, _ := bufio.NewReader(c.conn).ReadString('\x00')
+	username = strings.TrimSpace(username)
+	if username == "" {
+		username = "anon"
+	}
+	return username
 }
 
 func (c *Client) readPassword() string {
-    c.conn.Write([]byte("Enter password: "))
-    password, _ := bufio.NewReader(c.conn).ReadString('\x00')
-    password = strings.TrimSpace(password)
-    return password
+	c.conn.Write([]byte("Enter password: "))
+	password, _ := bufio.NewReader(c.conn).ReadString('\x00')
+	password = strings.TrimSpace(password)
+	return password
 }
 
 func listUsers(c *Client, r *Room) {
