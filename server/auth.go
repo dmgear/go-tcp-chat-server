@@ -1,11 +1,17 @@
-package main
+package server
 
 import (
 	"database/sql"
 	"fmt"
 	"log"
 	"strings"
+    "theratway/main"
 )
+
+func filterString(message string) string {
+	message = message[:len(message)-1]
+	return message
+}
 
 func checkUserExists(db *sql.DB, username string) (bool, error) {
     // Prepare a SELECT query to check if the user exists
@@ -47,30 +53,30 @@ func checkPassword(db *sql.DB, username string, password string) (bool, error) {
 
 func login(db *sql.DB, c *Client) {
     // get username and password from client
-	c.username = strings.TrimSpace(c.readUsername())
-	c.username = filterString(c.username)
+	c.Username = strings.TrimSpace(c.readUsername())
+	c.Username = filterString(c.Username)
 	
 	// check if user already exists in the database
-    userExists, err := checkUserExists(db, c.username)
+    userExists, err := checkUserExists(db, c.Username)
     if err != nil {
         log.Fatal(err)
         return
     }
     if userExists {
-		c.conn.Write([]byte("User already exists, please log in"))
-        fmt.Println("User", c.username, "already exists, please log in.")
-		c.password = strings.TrimSpace(c.readPassword())
-		c.password = filterString(c.password)
-		result, err := checkPassword(db, c.username, c.password)
+		c.Conn.Write([]byte("User already exists, please log in"))
+        fmt.Println("User", c.Username, "already exists, please log in.")
+		c.Password = strings.TrimSpace(c.readPassword())
+		c.Password = filterString(c.Password)
+		result, err := checkPassword(db, c.Username, c.Password)
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		for !result {
-			c.conn.Write([]byte("incorrect password"))
-			c.password = strings.TrimSpace(c.readPassword())
-			c.password = filterString(c.password)
-			result, err = checkPassword(db, c.username, c.password)
+			c.Conn.Write([]byte("incorrect password"))
+			c.Password = strings.TrimSpace(c.readPassword())
+			c.Password = filterString(c.Password)
+			result, err = checkPassword(db, c.Username, c.Password)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -80,13 +86,13 @@ func login(db *sql.DB, c *Client) {
 
 	if !userExists {
 	// prompt user to create new account with email
-	c.conn.Write([]byte("No existing account with that username, please sign up "))
-	c.password = strings.TrimSpace(c.readPassword())
-	c.password = filterString(c.password)
-	fmt.Println("Client", c.username, "connected.")
+	c.Conn.Write([]byte("No existing account with that username, please sign up "))
+	c.Password = strings.TrimSpace(c.readPassword())
+	c.Password = filterString(c.Password)
+	fmt.Println("Client", c.Username, "connected.")
 
 	// add new user to the database if they dont already exist
-    err = addUser(db, c.username, c.password)
+    err = addUser(db, c.Username, c.Password)
     if err != nil {
         log.Fatal(err)
         return

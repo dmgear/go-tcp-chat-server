@@ -1,9 +1,11 @@
-package main
+package casino
 
 import (
 	"fmt"
 	"math/rand"
 	"time"
+	"theratway/main"
+	"theratway/room"
 )
 
 var DENOMINATIONS = []string{"2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"}
@@ -13,6 +15,12 @@ type Gopher struct {
 	state bool
 	players []string
 	
+}
+
+type Player struct {
+	hand     []Card
+	pile     []Card
+	points   int
 }
 
 type Card struct {
@@ -43,13 +51,13 @@ func (d *Deck) printDeck() {
 }
 
 func (d *Deck) shuffle() {
-	rand.Seed(time.Now().UnixNano())
+	time.Now().UnixNano()
 	rand.Shuffle(len(d.cards), func(i, j int) {
 		d.cards[i], d.cards[j] = d.cards[j], d.cards[i]
 	})
 }
 
-func (d *Deck) draw(c *Client) {
+func (d *Deck) draw(c *Player) {
 	if len(d.cards) == 0 {
 		fmt.Println("Game over!")
 	}
@@ -57,26 +65,23 @@ func (d *Deck) draw(c *Client) {
 	d.cards = d.cards[:len(d.cards)-1]
 }
 
-func (d *Deck) gopherDealHand(r *Room, c *Client) {
+func (d *Deck) gopherDealHand(p *Player) {
 	// check if being called in casino room, then check how many clients exist in the room to determine how many cards need to be dealt to each client
-	if r.name == "Casino" && len(r.Members) <= 4 {
 		// iterate over the members map and deal 7 cards to each client
-		for i := 0; i < 7; i++ {
-			for _, _ = range r.Members {// <-- note the blank identifiers used because we wont actually be using the variables for anything
-				d.draw(c)
-			}
+	for i := 0; i < 7; i++ {
+		for _, _ = range room.r.Members {// <-- note the blank identifiers used because we wont actually be using the variables for anything
+			d.draw(p)
 		}
-	} else if r.name == "Casino" && len(r.Members) > 4 {
-		for i := 0; i < 5; i++ {
-			for _, _ = range r.Members {
-				d.draw(c)
-			}
+	}
+	for i := 0; i < 5; i++ {
+		for _, _ = range room.r.Members {
+			d.draw(p)
 		}
 	}
 }
 
-func (c *Client) hasCard(username string, target string) {
-	for _, client := range clients {
+func (c *Player) hasCard(username string, target string) {
+	for _, client := range room.clients {
 		if client.username == username {
 			for _, card := range c.hand {
 				if card.Denomination == target {
@@ -88,7 +93,7 @@ func (c *Client) hasCard(username string, target string) {
 	}
 }
 
-func (g *Gopher) startGame(r *Room) *Gopher {
+func (g *Gopher) startGame(r *room.Room) *Gopher {
 	g.state = true
 	g.players = make([]string, 0)
 

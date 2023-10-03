@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"database/sql"
@@ -36,8 +36,8 @@ func InitDB(dbPath string) (*sql.DB, error) {
 }
 
 func (c *Client) updateRole(db *sql.DB, role string, username string) error {
-	c.role = role
-	c.username = username
+	c.Role = role
+	c.Username = username
 	query := "INSERT INTO ROLES (ROLENAME, USERID) VALUES (?, (SELECT USERID FROM USERS WHERE USERNAME=?))"
 	
 	_, err := db.Exec(query, role, username)

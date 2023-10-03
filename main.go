@@ -4,44 +4,18 @@ import (
 	"fmt"
 	"log"
 	"net"
-
+	"theratway/server"
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func isValidRole(role string, roles []string) bool {
-    for _, r := range roles {
-        if r == role {
-            return true
-        }
-    }
-    return false
-}
-
-func filterString(message string) string {
-	message = message[:len(message)-1]
-	return message
-}
-
-var static_rooms = []string{"#General", "#Programming", "#Gaming", "#Music", "#Paranormal", "#Misc", "#The Ratway", "#File transfer"}
-
-var clients []*Client
-
-var rooms = make(map[string]*Room)
-
-var clientRooms = make(map[*Client]*Room)
-
-var clientRoles = make(map[string][]*Client)
-
-var rolesList = []string{"Programmer", "Gamer", "Rat", "Gopher", "Paranormal Investigator","Mod"}
-
 func main() {	
-	db, err := InitDB("mydatabase.db")
+	db, err := server.InitDB("mydatabase.db")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
 	
-	createRooms()
+	server.CreateRooms()
 
 	l, err := net.Listen("tcp", "0.0.0.0:1491")
 
@@ -60,8 +34,8 @@ func main() {
 			log.Fatal(err)
 			continue
 		}
-		client := NewClient(conn)
-		clients = append(clients, client)
-		go client.handleConnection(db)
+		client := server.NewClient(conn)
+		server.Clients = append(server.Clients, client)
+		go client.HandleConnection(db)
 	}
 }
